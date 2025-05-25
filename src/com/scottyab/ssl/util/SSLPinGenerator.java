@@ -19,18 +19,16 @@ import javax.net.ssl.X509TrustManager;
 
 /**
  * <p>This class currently generates SSL pins based on a certificate's Subject Public Key Info as
- * described on <a href="http://goo.gl/AIx3e5">Adam Langley's Weblog</a> (a.k.a Public Key pinning). Pins
+ * described on <a href="https://www.imperialviolet.org/2011/05/04/pinning.html">Adam Langley's Weblog</a> (a.k.a Public Key pinning). Pins
  * are base-64 SHA-1 hashes, consistent with the format Chromium uses for <a
- * href="http://goo.gl/XDh6je">static certificates</a>. See Chromium's <a
- * href="http://goo.gl/4CCnGs">pinsets</a> for hostnames that are pinned in that
+ * href="https://chromium.googlesource.com/chromium/src/+/refs/heads/main/net/http/transport_security_state_static.pins">static certificates</a>. See <a
+ * href="https://chromium.googlesource.com/chromium/src/+/refs/heads/main/net/http/transport_security_state_static.json">Chromium's pinsets</a> for hostnames that are pinned in that
  * browser.
  * <p>
  * Designed to be compatible with okhttp 2.1+
- *
- * @author Scott Alexander-Bown github.com/scottyab
  */
 public class SSLPinGenerator {
-    private static final String DEFAULT_HASH_ALGORTHM = "SHA-1";
+    private static final String DEFAULT_HASH_ALGORTHM = "SHA-256";
 
     private final String hashAlgorthm;
     private final MessageDigest digest;
@@ -95,8 +93,8 @@ public class SSLPinGenerator {
 
     private static void printHelp() {
         System.out.println("##SSL pin set generator##");
-        System.out.println("The generated pinset are base-64 encoded hashes (default SHA-1, but supports SHA-256). Note: only run this on a trusted network.");
-        System.out.println("\nUsage: \"java -jar generatePins.jar <host>[:port] hashAlgorthm\" i.e scottyab.com:443 sha-256 ");
+        System.out.println("The generated pinset are base-64 encoded hashes (default SHA-256). Note: only run this on a trusted network.");
+        System.out.println("\nUsage: \"SSLPinGenerator <host>[:port] hashAlgorthm\" i.e., scottyab.com:443 sha-256");
     }
 
     private void fetchAndPrintPinHashs() throws Exception {
@@ -163,14 +161,15 @@ public class SSLPinGenerator {
             String subject = cert.getSubjectX500Principal().getName();
             if (debugPrinting) {
                 System.out.println(i + ". Subject :  " + subject);
+                System.out.println("Expiry date :  " + cert.getNotAfter().toString());
             }
             final byte[] hash = digest.digest(pubKey);
-            String hashAlgorthmWithoutHyphen = removeHyphen(hashAlgorthm);
+            String hashAlgorthmWithoutHyphen = removeHyphenAndMakeLower(hashAlgorthm);
             System.out.printf(Locale.ROOT, "%s/%s%n", hashAlgorthmWithoutHyphen, base64Encoder.encodeToString(hash));
         }
 
-        private String removeHyphen(String hashAlgorthm) {
-            return hashAlgorthm.replace("-", "");
+        private String removeHyphenAndMakeLower(String hashAlgorthm) {
+            return hashAlgorthm.replace("-", "").toLowerCase(Locale.ROOT);
         }
     }
 
